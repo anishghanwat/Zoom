@@ -7,6 +7,7 @@ dotenv.config();
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import { connectToSocket } from './controllers/socketManager.js';
+import userRoutes from './routes/users.routes.js'
 
 const app = express();
 const server = createServer(app);
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ limit: '40kb', extended: true }));
 
 const PORT = process.env.PORT || 8080;
 
+app.use("/api/v1/users", userRoutes);
 
 const start = async () => {
     const connctionDb = await mongoose.connect(process.env.MONGO_URI);
