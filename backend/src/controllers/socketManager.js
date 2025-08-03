@@ -1,7 +1,4 @@
 import { Server } from "socket.io";
-import { Socket } from "node:dgram";
-import { Server } from "node:http";
-import { send } from "node:process";
 
 let connections = {};
 
@@ -23,7 +20,7 @@ export const connectToSocket = (server) => {
     io.on("connection", (socket) => {
         socket.on("join-call", (path) => {
             if (connections[path] == undefined) {
-                connections.path = [];
+                connections[path] = [];
             }
             connections[path].push(socket.id);
 
@@ -33,7 +30,7 @@ export const connectToSocket = (server) => {
                 io.to(connections[path][a]).emit("user-joined", socket.id, connections[path]);
             }
 
-            if (messages[path != undefined]) {
+            if (messages[path] !== undefined) {
                 for (let a = 0; a < messages[path].length; ++a) {
                     io.to(socket.id).emit("chat-message", messages[path][a]['data'],
                         messages[path][a]['sender'], messages[path][a]['socket-id-sender']);
