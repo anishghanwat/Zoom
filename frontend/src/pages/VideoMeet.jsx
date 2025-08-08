@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TextField, Button } from '@mui/material';
 import { io } from "socket.io-client";
 
-import "../styles/VideoMeet.css";
+import styles from '../styles/videoMeet.module.css';
 
 const server_url = "http://localhost:8080";
 
@@ -323,15 +323,25 @@ function VideoMeet() {
                     <div>
                         <video ref={localVideoRef} autoPlay muted></video>
                     </div>
-                </div> : <>
-                    <video ref={localVideoRef} autoPlay muted ></video>
+                </div> : <div className={styles.meetVideoContainer}>
+                    <video className='meetUserVideo' ref={localVideoRef} autoPlay muted ></video>
 
                     {videos.map((video) => (
                         <div key={video.socketId}>
+                            <h2>{video.socketId}</h2>
 
+                            <video>
+                                data-socket={video.socketId}
+                                ref={ref => {
+                                    if (ref && video.stream) {
+                                        ref.srcObject = video.stream;
+                                    }
+                                }}
+                                autoPlay
+                            </video>
                         </div>
                     ))}
-                </>
+                </div>
             }
         </div>
     );
