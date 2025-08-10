@@ -1,3 +1,6 @@
+/* ===============================
+   Root Variables for Easy Theme Management
+   =============================== */
 :root {
     --primary-color: #ff9839;
     --text-light: #ffffff;
@@ -6,10 +9,13 @@
     --border-radius: 20px;
 }
 
-/* Main container */
+/* ===============================
+   Landing Page Container
+   =============================== */
 .LandingContainer {
     width: 100%;
     height: 100vh;
+    /* Background image covers the full viewport */
     background: url("../public/background.png") no-repeat center center;
     background-size: cover;
     color: var(--text-light);
@@ -18,7 +24,9 @@
     justify-content: space-between;
 }
 
-/* Navigation bar */
+/* ===============================
+   Navigation Bar
+   =============================== */
 .LandingContainer nav {
     padding: var(--nav-padding-y) var(--nav-padding-x);
     display: flex;
@@ -32,15 +40,17 @@
     letter-spacing: 0.5px;
 }
 
+/* Navigation Links Container */
 .LandingContainer nav .navList {
     display: flex;
     gap: 1.6rem;
-    cursor: pointer;
 }
 
+/* Individual Navigation Items */
 .LandingContainer nav .navList li {
     list-style: none;
     font-weight: 500;
+    cursor: pointer;
     transition: color 0.2s ease;
 }
 
@@ -48,22 +58,25 @@
     color: var(--primary-color);
 }
 
-/* Main hero section */
+/* ===============================
+   Hero Section Layout
+   =============================== */
 .LandingMainContainer {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding-inline: 3rem;
     height: 80vh;
-    align-items: center;
     gap: 2rem;
 }
 
+/* Left Column (Text + CTA) */
 .LandingMainContainer>div:nth-child(1) {
     font-size: 1.5rem;
     max-width: 600px;
 }
 
-/* CTA button */
+/* CTA Button Styles */
 .LandingMainContainer>div:nth-child(1) div[role='button'] {
     background-color: var(--primary-color);
     width: fit-content;
@@ -74,11 +87,13 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* CTA Hover Effect */
 .LandingMainContainer>div:nth-child(1) div[role='button']:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
+/* CTA Link Styling */
 .LandingMainContainer>div:nth-child(1) div[role='button'] a {
     text-decoration: none;
     color: var(--text-light);
@@ -86,7 +101,9 @@
     font-weight: 500;
 }
 
-/* Hero image */
+/* ===============================
+   Hero Image (Right Column)
+   =============================== */
 .LandingMainContainer>div:nth-child(2) img {
     height: 70vh;
     width: auto;
@@ -94,7 +111,7 @@
     animation: float 6s ease-in-out infinite;
 }
 
-/* Floating animation for hero image */
+/* Floating Animation for Hero Image */
 @keyframes float {
 
     0%,
@@ -107,7 +124,11 @@
     }
 }
 
-/* Responsive styles */
+/* ===============================
+   Responsive Styles
+   =============================== */
+
+/* Tablet Layout */
 @media (max-width: 1024px) {
     .LandingMainContainer {
         flex-direction: column;
@@ -125,6 +146,7 @@
     }
 }
 
+/* Mobile Layout */
 @media (max-width: 768px) {
     .LandingContainer nav h2 {
         font-size: 1.5rem;
