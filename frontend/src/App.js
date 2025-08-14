@@ -3,6 +3,7 @@ import './App.css';
 
 // Page Components
 import Landing from './pages/Landing.jsx';
+import Home from './pages/Home.jsx';
 import Authentication from './pages/Authentication.jsx';
 import VideoMeet from './pages/VideoMeet.jsx';
 
@@ -25,6 +26,9 @@ function App() {
 
           {/* Authentication Page */}
           <Route path="/auth" element={<Authentication />} />
+
+          {/* Home Page */}
+          <Route path="/home" element={<Home />} />
 
           {/* Video Meeting Room - dynamic URL */}
           <Route path="/:url" element={<VideoMeet />} />
