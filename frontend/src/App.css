@@ -1,163 +1,97 @@
-/* ===============================
-   Root Variables for Easy Theme Management
-   =============================== */
-:root {
-    --primary-color: #ff9839;
-    --text-light: #ffffff;
-    --nav-padding-x: 1.2rem;
-    --nav-padding-y: 1.6rem;
-    --border-radius: 20px;
-}
-
-/* ===============================
-   Landing Page Container
-   =============================== */
-.LandingContainer {
-    width: 100%;
+.landingPageContainer {
+    width: 100vw;
     height: 100vh;
-    /* Background image covers the full viewport */
-    background: url("../public/background.png") no-repeat center center;
+    background: url("/public/background.png");
+    background-repeat: no-repeat;
     background-size: cover;
-    color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    color: white;
 }
 
-/* ===============================
-   Navigation Bar
-   =============================== */
-.LandingContainer nav {
-    padding: var(--nav-padding-y) var(--nav-padding-x);
+.landingPageContainer nav {
+    padding-inline: 1.2rem;
+    padding-block: 1.6rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+
 }
 
-.LandingContainer nav h2 {
+.landingPageContainer nav h2 {
     font-size: 1.8rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
-/* Navigation Links Container */
-.LandingContainer nav .navList {
+.landingPageContainer nav .navlist {
     display: flex;
     gap: 1.6rem;
-}
-
-/* Individual Navigation Items */
-.LandingContainer nav .navList li {
-    list-style: none;
-    font-weight: 500;
     cursor: pointer;
-    transition: color 0.2s ease;
+
 }
 
-.LandingContainer nav .navList li:hover {
-    color: var(--primary-color);
-}
-
-/* ===============================
-   Hero Section Layout
-   =============================== */
-.LandingMainContainer {
+.landingMainContainer {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     padding-inline: 3rem;
     height: 80vh;
-    gap: 2rem;
+    align-items: center;
 }
 
-/* Left Column (Text + CTA) */
-.LandingMainContainer>div:nth-child(1) {
-    font-size: 1.5rem;
-    max-width: 600px;
+.landingMainContainer>div:nth-child(1) {
+    font-size: 2.2rem;
 }
 
-/* CTA Button Styles */
-.LandingMainContainer>div:nth-child(1) div[role='button'] {
-    background-color: var(--primary-color);
+.landingMainContainer>div:nth-child(1) div[role='button'] {
+    background: #D97500;
     width: fit-content;
-    padding: 1rem 2rem;
-    border-radius: var(--border-radius);
+    padding: 1rem;
+    border-radius: 20px;
     margin-top: 1.9rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* CTA Hover Effect */
-.LandingMainContainer>div:nth-child(1) div[role='button']:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-/* CTA Link Styling */
-.LandingMainContainer>div:nth-child(1) div[role='button'] a {
+.landingMainContainer>div:nth-child(1) div[role='button'] a {
     text-decoration: none;
-    color: var(--text-light);
+    color: white;
     font-size: 1.7rem;
-    font-weight: 500;
 }
 
-/* ===============================
-   Hero Image (Right Column)
-   =============================== */
-.LandingMainContainer>div:nth-child(2) img {
+.landingMainContainer>div:nth-child(2) img {
     height: 70vh;
     width: auto;
-    object-fit: contain;
-    animation: float 6s ease-in-out infinite;
 }
 
-/* Floating Animation for Hero Image */
-@keyframes float {
+.navBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: 20px;
+    text-align: center;
 
-    0%,
-    100% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
 }
 
-/* ===============================
-   Responsive Styles
-   =============================== */
-
-/* Tablet Layout */
-@media (max-width: 1024px) {
-    .LandingMainContainer {
-        flex-direction: column;
-        text-align: center;
-        height: auto;
-        padding: 2rem;
-    }
-
-    .LandingMainContainer>div:nth-child(1) {
-        font-size: 1.3rem;
-    }
-
-    .LandingMainContainer>div:nth-child(2) img {
-        height: 50vh;
-    }
+.meetContainer {
+    display: flex;
+    padding-inline: 20px;
+    height: 80vh;
+    gap: 10vw;
+    justify-content: center;
 }
 
-/* Mobile Layout */
-@media (max-width: 768px) {
-    .LandingContainer nav h2 {
-        font-size: 1.5rem;
-    }
 
-    .LandingContainer nav .navList {
-        gap: 1rem;
-    }
 
-    .LandingMainContainer>div:nth-child(1) div[role='button'] {
-        padding: 0.8rem 1.5rem;
-        font-size: 1.5rem;
-    }
+.leftPanel {
+    height: 100%;
+    display: flex;
+    align-items: center;
+
+}
+
+.rightPanel {
+    display: flex;
+    align-items: center;
+}
+
+.rightPanel>img {
+    width: 30vw;
+    height: auto;
+    border-radius: 20px;
 }

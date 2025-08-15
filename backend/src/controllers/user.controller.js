@@ -1,96 +1,101 @@
-import httpStatus from 'http-status';
+import httpStatus from "http-status";
 import { User } from "../models/user.model.js";
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+import bcrypt, { hash } from "bcrypt"
 
-const SALT_ROUNDS = 10; // Number of bcrypt salt rounds for hashing passwords
-
-/**
- * LOGIN CONTROLLER
- * Authenticates the user based on username and password.
- */
+import crypto from "crypto"
+import { Meeting } from "../models/meeting.model.js";
 const login = async (req, res) => {
+
     const { username, password } = req.body;
 
-    // 1. Validate required input
     if (!username || !password) {
-        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide username and password" });
+        return res.status(400).json({ message: "Please Provide" })
     }
 
     try {
-        // 2. Check if the user exists in the database
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.NOT_FOUND).json({ message: "User Not Found" })
         }
 
-        // 3. Compare the given password with the hashed password stored in DB
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-        if (!isPasswordCorrect) {
-            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid username or password" });
+
+        let isPasswordCorrect = await bcrypt.compare(password, user.password)
+
+        if (isPasswordCorrect) {
+            let token = crypto.randomBytes(20).toString("hex");
+
+            user.token = token;
+            await user.save();
+            return res.status(httpStatus.OK).json({ token: token })
+        } else {
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid Username or password" })
         }
 
-        // 4. Generate a random token (can be replaced with JWT for stateless auth)
-        const token = crypto.randomBytes(20).toString("hex");
-
-        // 5. Store token in DB (you can also store an expiry time for better security)
-        user.token = token;
-        // Example for expiry: user.tokenExpiresAt = Date.now() + 3600000; // 1 hour
-        await user.save();
-
-        // 6. Send token back to client
-        return res.status(httpStatus.OK).json({ token });
-    } catch (error) {
-        // 7. Log the error internally and return generic error to client
-        console.error("Login Error:", error);
-        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Something went wrong" });
+    } catch (e) {
+        return res.status(500).json({ message: `Something went wrong ${e}` })
     }
-};
+}
 
-/**
- * REGISTER CONTROLLER
- * Registers a new user by creating an account with hashed password.
- */
+
 const register = async (req, res) => {
     const { name, username, password } = req.body;
 
-    // 1. Validate required input fields
-    if (!name || !username || !password) {
-        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide all required fields" });
-    }
-
-    // 2. Validate password length
-    if (password.length < 6) {
-        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must be at least 6 characters long" });
-    }
 
     try {
-        // 3. Check if username is already taken
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            return res.status(httpStatus.CONFLICT).json({ message: 'User already exists!' });
+            return res.status(httpStatus.FOUND).json({ message: "User already exists" });
         }
 
-        // 4. Hash the password before storing
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 5. Create new user object
         const newUser = new User({
-            name,
-            username,
+            name: name,
+            username: username,
             password: hashedPassword
         });
 
-        // 6. Save new user to database
         await newUser.save();
 
-        // 7. Send success response
-        return res.status(httpStatus.CREATED).json({ message: 'User registered successfully' });
-    } catch (error) {
-        // 8. Log the error internally and return generic error to client
-        console.error("Registration Error:", error);
-        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Something went wrong" });
-    }
-};
+        res.status(httpStatus.CREATED).json({ message: "User Registered" })
 
-export { login, register };
+    } catch (e) {
+        res.json({ message: `Something went wrong ${e}` })
+    }
+
+}
+
+
+const getUserHistory = async (req, res) => {
+    const { token } = req.query;
+
+    try {
+        const user = await User.findOne({ token: token });
+        const meetings = await Meeting.find({ user_id: user.username })
+        res.json(meetings)
+    } catch (e) {
+        res.json({ message: `Something went wrong ${e}` })
+    }
+}
+
+const addToHistory = async (req, res) => {
+    const { token, meeting_code } = req.body;
+
+    try {
+        const user = await User.findOne({ token: token });
+
+        const newMeeting = new Meeting({
+            user_id: user.username,
+            meetingCode: meeting_code
+        })
+
+        await newMeeting.save();
+
+        res.status(httpStatus.CREATED).json({ message: "Added code to history" })
+    } catch (e) {
+        res.json({ message: `Something went wrong ${e}` })
+    }
+}
+
+
+export { login, register, getUserHistory, addToHistory };
