@@ -5,6 +5,11 @@ import {
     IconButton,
     TextField,
     Button,
+    Paper,
+    Typography,
+    Box,
+    Fade,
+    Slide
 } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
@@ -14,7 +19,9 @@ import MicOffIcon from "@mui/icons-material/MicOff";
 import ScreenShareIcon from "@mui/icons-material/ScreenShare";
 import StopScreenShareIcon from "@mui/icons-material/StopScreenShare";
 import ChatIcon from "@mui/icons-material/Chat";
-import styles from "../styles/VideoMeet.module.css"; // keep your CSS module
+import CloseIcon from "@mui/icons-material/Close";
+import SendIcon from "@mui/icons-material/Send";
+import styles from "../styles/VideoMeet.module.css";
 import server from "../environment";
 
 const SERVER_URL = server;
@@ -40,7 +47,7 @@ export default function VideoMeetComponent() {
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
-    const [chatOpen, setChatOpen] = useState(true);
+    const [chatOpen, setChatOpen] = useState(false);
 
     // --- Mount / Unmount ---
     useEffect(() => {
@@ -107,7 +114,7 @@ export default function VideoMeetComponent() {
         socketRef.current.on("signal", handleSignal);
 
         socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
-            setMessages((prev) => [...prev, { sender, data }]);
+            setMessages((prev) => [...prev, { sender, data, timestamp: new Date() }]);
             if (socketRef.current && socketRef.current.id !== socketIdSender) {
                 setUnreadCount((c) => c + 1);
             }
@@ -357,95 +364,211 @@ export default function VideoMeetComponent() {
     }
 
     function sendMessage() {
-        if (!socketRef.current) return;
+        if (!socketRef.current || !message.trim()) return;
         socketRef.current.emit("chat-message", message, username);
-        setMessages((m) => [...m, { sender: username, data: message }]);
+        setMessages((m) => [...m, { sender: username, data: message, timestamp: new Date() }]);
         setMessage("");
     }
 
+    const formatTime = (timestamp) => {
+        return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     // ----------------- UI -----------------
     return (
-        <div>
+        <div className={styles.meetVideoContainer}>
             {askForUsername ? (
-                <div>
-                    <h2>Enter into Lobby </h2>
-                    <TextField value={username} onChange={(e) => setUsername(e.target.value)} label="Username" />
-                    <Button variant="contained" onClick={startCall} disabled={!username} style={{ marginLeft: 8 }}>
-                        Connect
-                    </Button>
-
-                    <div>
-                        <video ref={localVideoRef} autoPlay muted playsInline style={{ width: 240, marginTop: 12 }} />
+                <div className={styles.lobbyContainer}>
+                    <Typography variant="h2" className={styles.lobbyTitle}>
+                        Enter Meeting Lobby
+                    </Typography>
+                    
+                    <div className={styles.lobbyForm}>
+                        <TextField
+                            fullWidth
+                            label="Your Name"
+                            variant="outlined"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter your name to join"
+                            sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    '&:hover fieldset': {
+                                        borderColor: 'var(--primary-color)',
+                                    },
+                                }
+                            }}
+                        />
+                        
+                        <Button
+                            variant="contained"
+                            onClick={startCall}
+                            disabled={!username.trim()}
+                            startIcon={<VideocamIcon />}
+                            sx={{
+                                minWidth: 200,
+                                height: 56,
+                                borderRadius: 2,
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-dark))',
+                                '&:hover': {
+                                    background: 'linear-gradient(135deg, var(--primary-dark), var(--primary-color))',
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 'var(--shadow-lg)',
+                                },
+                                '&:disabled': {
+                                    background: 'var(--text-light)',
+                                    transform: 'none',
+                                    boxShadow: 'none',
+                                }
+                            }}
+                        >
+                            Join Meeting
+                        </Button>
                     </div>
-                </div>
-            ) : (
-                <div className={styles.meetVideoContainer}>
-                    {chatOpen && (
-                        <div className={styles.chatRoom}>
-                            <div className={styles.chatContainer}>
-                                <h1>Chat</h1>
-                                <div className={styles.chattingDisplay}>
-                                    {messages.length ? (
-                                        messages.map((item, i) => (
-                                            <div key={i} style={{ marginBottom: 12 }}>
-                                                <p style={{ fontWeight: "bold" }}>{item.sender}</p>
-                                                <p>{item.data}</p>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p>No Messages Yet</p>
-                                    )}
-                                </div>
-                                <div className={styles.chattingArea}>
-                                    <TextField value={message} onChange={(e) => setMessage(e.target.value)} label="Enter Your chat" />
-                                    <Button variant="contained" onClick={sendMessage} style={{ marginLeft: 8 }}>
-                                        Send
-                                    </Button>
-                                </div>
-                            </div>
+
+                    {localStream && (
+                        <div className={styles.lobbyPreview}>
+                            <video ref={localVideoRef} autoPlay muted playsInline />
                         </div>
                     )}
-
-                    <div className={styles.buttonContainers}>
-                        <IconButton onClick={toggleVideo} style={{ color: "white" }}>
-                            {videoOn ? <VideocamIcon /> : <VideocamOffIcon />}
-                        </IconButton>
-
-                        <IconButton onClick={endCall} style={{ color: "red" }}>
-                            <CallEndIcon />
-                        </IconButton>
-
-                        <IconButton onClick={toggleAudio} style={{ color: "white" }}>
-                            {audioOn ? <MicIcon /> : <MicOffIcon />}
-                        </IconButton>
-
-                        <IconButton onClick={toggleScreenShare} style={{ color: "white" }}>
-                            {screenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
-                        </IconButton>
-
-                        <Badge badgeContent={unreadCount} color="error">
-                            <IconButton onClick={() => { setChatOpen((s) => !s); setUnreadCount(0); }} style={{ color: "white" }}>
-                                <ChatIcon />
-                            </IconButton>
-                        </Badge>
-                    </div>
-
-                    <video className={styles.meetUserVideo} ref={localVideoRef} autoPlay muted playsInline style={{ width: 280 }} />
-
-                    <div className={styles.conferenceView}>
+                </div>
+            ) : (
+                <div className={styles.meetingInterface}>
+                    {/* Video Grid */}
+                    <div className={styles.videoGrid}>
                         {videos.map((v) => (
-                            <div key={v.socketId} style={{ display: "inline-block", margin: 8 }}>
+                            <div key={v.socketId} className={styles.videoItem}>
                                 <video
                                     autoPlay
                                     playsInline
                                     ref={(el) => {
                                         if (el) el.srcObject = v.stream;
                                     }}
-                                    style={{ width: 240, height: 160, background: "black" }}
                                 />
+                                <div className={styles.videoLabel}>
+                                    {v.socketId.slice(0, 8)}...
+                                </div>
                             </div>
                         ))}
+                        
+                        {videos.length === 0 && (
+                            <div className={styles.emptyState}>
+                                <VideocamIcon />
+                                <Typography variant="h6">Waiting for others to join...</Typography>
+                                <Typography variant="body2">
+                                    Share this meeting link with others to start the call
+                                </Typography>
+                            </div>
+                        )}
                     </div>
+
+                    {/* Local Video */}
+                    {localStream && (
+                        <div className={styles.localVideo}>
+                            <video ref={localVideoRef} autoPlay muted playsInline />
+                            <div className={styles.statusIndicator}></div>
+                        </div>
+                    )}
+
+                    {/* Control Bar */}
+                    <div className={styles.controlBar}>
+                        <IconButton 
+                            className={`${styles.controlButton} ${videoOn ? 'active' : ''}`}
+                            onClick={toggleVideo}
+                        >
+                            {videoOn ? <VideocamIcon /> : <VideocamOffIcon />}
+                        </IconButton>
+
+                        <IconButton 
+                            className={`${styles.controlButton} ${audioOn ? 'active' : ''}`}
+                            onClick={toggleAudio}
+                        >
+                            {audioOn ? <MicIcon /> : <MicOffIcon />}
+                        </IconButton>
+
+                        <IconButton 
+                            className={`${styles.controlButton} ${screenSharing ? 'active' : ''}`}
+                            onClick={toggleScreenShare}
+                        >
+                            {screenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
+                        </IconButton>
+
+                        <IconButton 
+                            className={`${styles.controlButton} danger`}
+                            onClick={endCall}
+                        >
+                            <CallEndIcon />
+                        </IconButton>
+
+                        <Badge badgeContent={unreadCount} color="error">
+                            <IconButton 
+                                className={styles.controlButton}
+                                onClick={() => { setChatOpen(!chatOpen); setUnreadCount(0); }}
+                            >
+                                <ChatIcon />
+                            </IconButton>
+                        </Badge>
+                    </div>
+
+                    {/* Chat Interface */}
+                    <Slide direction="left" in={chatOpen} mountOnEnter unmountOnExit>
+                        <div className={styles.chatInterface}>
+                            <div className={styles.chatHeader}>
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="h6">Chat</Typography>
+                                    <IconButton 
+                                        size="small" 
+                                        onClick={() => setChatOpen(false)}
+                                        sx={{ color: 'white' }}
+                                    >
+                                        <CloseIcon />
+                                    </IconButton>
+                                </Box>
+                            </div>
+
+                            <div className={styles.chatMessages}>
+                                {messages.length > 0 ? (
+                                    messages.map((item, i) => (
+                                        <div key={i} className={`${styles.message} ${item.sender === username ? 'sent' : 'received'}`}>
+                                            {item.sender !== username && (
+                                                <div className={styles.messageSender}>{item.sender}</div>
+                                            )}
+                                            <div className={styles.messageBubble}>
+                                                {item.data}
+                                            </div>
+                                            <div className={styles.messageTime}>
+                                                {formatTime(item.timestamp)}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className={styles.emptyState}>
+                                        <ChatIcon />
+                                        <Typography variant="h6">No messages yet</Typography>
+                                        <Typography variant="body2">
+                                            Start the conversation by sending a message
+                                        </Typography>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.chatInput}>
+                                <div className={styles.chatInputForm}>
+                                    <input
+                                        type="text"
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        placeholder="Type a message..."
+                                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                    />
+                                    <button onClick={sendMessage}>
+                                        <SendIcon />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </Slide>
                 </div>
             )}
         </div>
