@@ -86,7 +86,7 @@ export default function VideoMeetComponent() {
         if (localVideoRef.current && localStream) {
             localVideoRef.current.srcObject = localStream;
         }
-    }, [localStream, askForUsername]);
+    }, [localStream]);
 
     // ----------------- Permissions & initial user media -----------------
     async function getPermissions() {
@@ -143,6 +143,7 @@ export default function VideoMeetComponent() {
         if (socketRef.current) return;
 
         try {
+            console.log("Connecting to socket server:", SERVER_URL);
             socketRef.current = io(SERVER_URL, {
                 secure: window.location.protocol === "https:",
                 transports: ['websocket', 'polling'],
@@ -153,8 +154,11 @@ export default function VideoMeetComponent() {
             });
 
             socketRef.current.on("connect", () => {
-                socketRef.current.emit("join-call", window.location.href);
-                console.log("socket connected", socketRef.current.id);
+                console.log("Socket connected successfully, ID:", socketRef.current.id);
+                // Get the meeting URL from the current path
+                const meetingUrl = window.location.pathname;
+                socketRef.current.emit("join-call", meetingUrl);
+                console.log("Emitted join-call with URL:", meetingUrl);
             });
 
             socketRef.current.on("connect_error", (error) => {
@@ -165,9 +169,15 @@ export default function VideoMeetComponent() {
                 }
             });
 
-            socketRef.current.on("user-joined", handleUserJoined);
+            socketRef.current.on("user-joined", (newId, clients) => {
+                console.log("User joined event:", { newId, clients });
+                handleUserJoined(newId, clients);
+            });
 
-            socketRef.current.on("signal", handleSignal);
+            socketRef.current.on("signal", (fromId, message) => {
+                console.log("Received signal from:", fromId);
+                handleSignal(fromId, message);
+            });
 
             socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
                 // Ignore our own echoed messages to prevent duplicates
@@ -177,6 +187,7 @@ export default function VideoMeetComponent() {
             });
 
             socketRef.current.on("user-left", (id) => {
+                console.log("User left:", id);
                 // remove peer and video
                 if (peersRef.current[id]) {
                     try {
@@ -237,15 +248,20 @@ export default function VideoMeetComponent() {
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log("Sending ICE candidate to:", socketId);
                 socketRef.current.emit("signal", socketId, JSON.stringify({ ice: event.candidate }));
             }
         };
 
         // when remote track(s) arrive
         pc.ontrack = (event) => {
+            console.log("Received track from peer:", socketId, event.track.kind);
             // event.streams may contain the stream (modern browsers)
             const stream = event.streams && event.streams[0] ? event.streams[0] : null;
-            if (!stream) return;
+            if (!stream) {
+                console.warn("No stream in track event for:", socketId);
+                return;
+            }
 
             setVideos((prev) => {
                 const exists = prev.find((v) => v.socketId === socketId);
@@ -258,17 +274,26 @@ export default function VideoMeetComponent() {
 
         // clean up when connection closes
         pc.onconnectionstatechange = () => {
+            console.log("Peer connection state changed:", socketId, pc.connectionState);
             if (pc.connectionState === "disconnected" || pc.connectionState === "failed" || pc.connectionState === "closed") {
                 delete peersRef.current[socketId];
                 setVideos((v) => v.filter((x) => x.socketId !== socketId));
             }
         };
 
+        // Add connection state logging
+        pc.oniceconnectionstatechange = () => {
+            console.log("ICE connection state:", socketId, pc.iceConnectionState);
+        };
+
         return pc;
     }
 
     async function handleSignal(fromId, message) {
+        console.log("Processing signal from:", fromId, "Type:", message ? JSON.parse(message).sdp?.type || 'ICE' : 'Unknown');
+
         if (!peersRef.current[fromId]) {
+            console.log("Creating new peer for:", fromId);
             // create a peer if it doesn't exist
             createPeer(fromId, false);
         }
@@ -278,40 +303,65 @@ export default function VideoMeetComponent() {
 
         try {
             if (signal.sdp) {
+                console.log("Setting remote description:", signal.sdp.type);
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
                 if (signal.sdp.type === "offer") {
+                    console.log("Creating answer for offer from:", fromId);
                     // add local tracks then answer
-                    if (localStream) localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+                    if (localStream) {
+                        localStream.getTracks().forEach((t) => {
+                            console.log("Adding track to peer:", t.kind);
+                            pc.addTrack(t, localStream);
+                        });
+                    }
+
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
+                    console.log("Sending answer to:", fromId);
                     socketRef.current.emit("signal", fromId, JSON.stringify({ sdp: pc.localDescription }));
                 }
             }
 
             if (signal.ice) {
+                console.log("Adding ICE candidate from:", fromId);
                 await pc.addIceCandidate(new RTCIceCandidate(signal.ice));
             }
         } catch (e) {
-            console.error("handleSignal error", e);
+            console.error("handleSignal error:", e);
         }
     }
 
     // ----------------- Actions -----------------
     async function startCall() {
+        console.log("Starting call with username:", username);
         setAskForUsername(false);
+
+        // Connect to socket first
         connectSocket();
 
-        // ensure local preview attaches in meeting view as well
-        if (localVideoRef.current && localStream) {
-            localVideoRef.current.srcObject = localStream;
-        }
+        // Wait a bit for socket to connect
+        setTimeout(() => {
+            // ensure local preview attaches in meeting view as well
+            if (localVideoRef.current && localStream) {
+                localVideoRef.current.srcObject = localStream;
+                console.log("Local video attached to meeting view");
+            }
 
-        // add local tracks to all existing peers
-        Object.keys(peersRef.current).forEach((id) => {
-            try {
-                if (localStream) localStream.getTracks().forEach((t) => peersRef.current[id].addTrack(t, localStream));
-            } catch (e) { }
-        });
+            // add local tracks to all existing peers
+            Object.keys(peersRef.current).forEach((id) => {
+                try {
+                    if (localStream) {
+                        localStream.getTracks().forEach((t) => {
+                            console.log("Adding track to existing peer:", id, t.kind);
+                            peersRef.current[id].addTrack(t, localStream);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error adding tracks to peer:", id, e);
+                }
+            });
+        }, 1000);
     }
 
 
@@ -493,8 +543,14 @@ export default function VideoMeetComponent() {
                                 <video
                                     autoPlay
                                     playsInline
+                                    muted={false}
                                     ref={(el) => {
-                                        if (el) el.srcObject = v.stream;
+                                        if (el && el.srcObject !== v.stream) {
+                                            el.srcObject = v.stream;
+                                        }
+                                    }}
+                                    onLoadedMetadata={() => {
+                                        console.log("Remote video loaded for:", v.socketId);
                                     }}
                                 />
                                 <div className={styles.videoLabel}>
@@ -517,7 +573,15 @@ export default function VideoMeetComponent() {
                     {/* Local Video */}
                     {localStream && (
                         <div className={styles.localVideo}>
-                            <video ref={localVideoRef} autoPlay muted playsInline />
+                            <video
+                                ref={localVideoRef}
+                                autoPlay
+                                muted
+                                playsInline
+                                onLoadedMetadata={() => {
+                                    console.log("Local video loaded successfully");
+                                }}
+                            />
                             <div className={styles.statusIndicator}></div>
                         </div>
                     )}
@@ -560,6 +624,25 @@ export default function VideoMeetComponent() {
                                 <ChatIcon />
                             </IconButton>
                         </Badge>
+
+                        {/* Debug Info */}
+                        <div style={{
+                            position: 'absolute',
+                            top: '-60px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: 'rgba(0,0,0,0.8)',
+                            color: 'white',
+                            padding: '8px 12px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontFamily: 'monospace'
+                        }}>
+                            Socket: {socketRef.current?.connected ? '🟢' : '🔴'} |
+                            Peers: {Object.keys(peersRef.current).length} |
+                            Videos: {videos.length} |
+                            Stream: {localStream ? '🟢' : '🔴'}
+                        </div>
                     </div>
 
                     {/* Chat Interface */}

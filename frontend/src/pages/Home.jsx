@@ -102,30 +102,54 @@ function HomeComponent() {
                                     }
                                 }}
                             />
-                            <Button
-                                variant="contained"
-                                onClick={handleJoinVideoCall}
-                                disabled={!meetingCode.trim() || isJoining}
-                                startIcon={isJoining ? <div className="loading" /> : <VideoCallIcon />}
-                                sx={{
-                                    minWidth: 120,
-                                    height: 56,
-                                    borderRadius: 2,
-                                    background: 'linear-gradient(135deg, var(--primary-color), var(--primary-dark))',
-                                    '&:hover': {
-                                        background: 'linear-gradient(135deg, var(--primary-dark), var(--primary-color))',
-                                        transform: 'translateY(-2px)',
-                                        boxShadow: 'var(--shadow-lg)',
-                                    },
-                                    '&:disabled': {
-                                        background: 'var(--text-light)',
-                                        transform: 'none',
-                                        boxShadow: 'none',
-                                    }
-                                }}
-                            >
-                                {isJoining ? 'Joining...' : 'Join Meeting'}
-                            </Button>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleJoinVideoCall}
+                                    disabled={!meetingCode.trim() || isJoining}
+                                    startIcon={isJoining ? <div className="loading" /> : <VideoCallIcon />}
+                                    sx={{
+                                        flex: 1,
+                                        height: 56,
+                                        borderRadius: 2,
+                                        background: 'linear-gradient(135deg, var(--primary-color), var(--primary-dark))',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, var(--primary-dark), var(--primary-color))',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: 'var(--shadow-lg)',
+                                        },
+                                        '&:disabled': {
+                                            background: 'var(--text-light)',
+                                            transform: 'none',
+                                            boxShadow: 'none',
+                                        }
+                                    }}
+                                >
+                                    {isJoining ? 'Joining...' : 'Join Meeting'}
+                                </Button>
+                                
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => {
+                                        const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                                        setMeetingCode(randomCode);
+                                        navigate(`/${randomCode}`);
+                                    }}
+                                    startIcon={<VideoCallIcon />}
+                                    sx={{
+                                        height: 56,
+                                        borderRadius: 2,
+                                        borderColor: 'var(--primary-color)',
+                                        color: 'var(--primary-color)',
+                                        '&:hover': {
+                                            borderColor: 'var(--primary-dark)',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                        }
+                                    }}
+                                >
+                                    Create
+                                </Button>
+                            </div>
                         </div>
 
                         {meetingCode.trim() && (
