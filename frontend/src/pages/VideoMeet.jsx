@@ -45,6 +45,7 @@ export default function VideoMeetComponent() {
     const [message, setMessage] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
     const [chatOpen, setChatOpen] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
     // --- Cleanup helper (stable reference) ---
     const cleanupAll = useCallback(() => {
@@ -146,15 +147,18 @@ export default function VideoMeetComponent() {
             console.log("Connecting to socket server:", SERVER_URL);
             socketRef.current = io(SERVER_URL, {
                 secure: window.location.protocol === "https:",
-                transports: ['websocket', 'polling'],
-                timeout: 20000,
+                transports: ['polling', 'websocket'], // Try polling first, then websocket
+                timeout: 30000,
                 reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 1000
+                reconnectionAttempts: 10,
+                reconnectionDelay: 2000,
+                forceNew: true,
+                upgrade: true
             });
 
             socketRef.current.on("connect", () => {
                 console.log("Socket connected successfully, ID:", socketRef.current.id);
+                setConnectionStatus("connected");
                 // Get the meeting URL from the current path
                 const meetingUrl = window.location.pathname;
                 socketRef.current.emit("join-call", meetingUrl);
@@ -163,10 +167,30 @@ export default function VideoMeetComponent() {
 
             socketRef.current.on("connect_error", (error) => {
                 console.error("Socket connection error:", error);
-                // Fallback to polling if websocket fails
+                console.log("Error details:", {
+                    message: error.message,
+                    description: error.description,
+                    context: error.context
+                });
+
+                // Try to reconnect with different transport
                 if (socketRef.current) {
+                    console.log("Attempting to reconnect with polling transport...");
                     socketRef.current.io.opts.transports = ['polling'];
+                    socketRef.current.connect();
                 }
+            });
+
+            socketRef.current.on("error", (error) => {
+                console.error("Socket error:", error);
+            });
+
+            socketRef.current.on("reconnect_attempt", (attemptNumber) => {
+                console.log("Reconnection attempt:", attemptNumber);
+            });
+
+            socketRef.current.on("reconnect_failed", () => {
+                console.error("Failed to reconnect after all attempts");
             });
 
             socketRef.current.on("user-joined", (newId, clients) => {
@@ -200,6 +224,7 @@ export default function VideoMeetComponent() {
 
             socketRef.current.on("disconnect", (reason) => {
                 console.log("Socket disconnected:", reason);
+                setConnectionStatus("disconnected");
                 if (reason === "io server disconnect") {
                     // the disconnection was initiated by the server, reconnect manually
                     socketRef.current.connect();
@@ -502,30 +527,68 @@ export default function VideoMeetComponent() {
                             }}
                         />
 
-                        <Button
-                            variant="contained"
-                            onClick={startCall}
-                            disabled={!username.trim()}
-                            startIcon={<VideocamIcon />}
-                            sx={{
-                                minWidth: 200,
-                                height: 56,
-                                borderRadius: 2,
-                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-dark))',
-                                '&:hover': {
-                                    background: 'linear-gradient(135deg, var(--primary-dark), var(--primary-color))',
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: 'var(--shadow-lg)',
-                                },
-                                '&:disabled': {
-                                    background: 'var(--text-light)',
-                                    transform: 'none',
-                                    boxShadow: 'none',
-                                }
-                            }}
-                        >
-                            Join Meeting
-                        </Button>
+                        {/* Connection Status */}
+                        <div style={{
+                            margin: '16px 0',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            background: connectionStatus === 'connected' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
+                            border: `1px solid ${connectionStatus === 'connected' ? '#4caf50' : '#f44336'}`,
+                            color: connectionStatus === 'connected' ? '#4caf50' : '#f44336',
+                            textAlign: 'center',
+                            fontSize: '14px'
+                        }}>
+                            {connectionStatus === 'connected' ? '🟢 Connected to server' : '🔴 Connecting to server...'}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                            <Button
+                                variant="contained"
+                                onClick={startCall}
+                                disabled={!username.trim()}
+                                startIcon={<VideocamIcon />}
+                                sx={{
+                                    width: '100%',
+                                    height: 56,
+                                    borderRadius: 2,
+                                    background: 'linear-gradient(135deg, var(--primary-color), var(--primary-dark))',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, var(--primary-dark), var(--primary-color))',
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: 'var(--shadow-lg)',
+                                    },
+                                    '&:disabled': {
+                                        background: 'var(--text-light)',
+                                        transform: 'none',
+                                        boxShadow: 'none',
+                                    }
+                                }}
+                            >
+                                Join Meeting
+                            </Button>
+
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    console.log("Testing connection manually...");
+                                    connectSocket();
+                                }}
+                                startIcon={<VideocamIcon />}
+                                sx={{
+                                    width: '100%',
+                                    height: 40,
+                                    borderRadius: 2,
+                                    borderColor: 'var(--primary-color)',
+                                    color: 'var(--primary-color)',
+                                    '&:hover': {
+                                        borderColor: 'var(--primary-dark)',
+                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                    }
+                                }}
+                            >
+                                Test Connection
+                            </Button>
+                        </div>
                     </div>
 
                     {localStream && (
