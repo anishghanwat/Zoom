@@ -1,8 +1,10 @@
-let IS_PROD = true;
-const server = IS_PROD ?
-    "https://zoom-642w.onrender.com" :
+// Environment configuration for API endpoints
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-    "http://localhost:8000"
-
+// Use environment variable if available, otherwise fallback to hardcoded URLs
+const server = process.env.REACT_APP_API_BASE_URL || (IS_PROD 
+    ? "https://zoom-642w.onrender.com" 
+    : "http://localhost:8000"
+);
 
 export default server;

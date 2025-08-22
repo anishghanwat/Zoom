@@ -92,22 +92,41 @@ export default function VideoMeetComponent() {
     async function getPermissions() {
         try {
             const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-            if (!hasGetUserMedia) return;
+            if (!hasGetUserMedia) {
+                console.warn("getUserMedia not supported");
+                return;
+            }
 
             // request both, but if denied we'll toggle accordingly
             try {
-                const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const s = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
                 setLocalStream(s);
                 setVideoOn(true);
                 setAudioOn(true);
             } catch (err) {
+                console.warn("Video+Audio permission denied, trying audio only:", err);
                 // try audio only
                 try {
-                    const a = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const a = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
+                    });
                     setLocalStream(a);
                     setVideoOn(false);
                     setAudioOn(true);
                 } catch (err2) {
+                    console.warn("Audio permission also denied:", err2);
                     // no media available
                     setLocalStream(null);
                     setVideoOn(false);
@@ -123,34 +142,62 @@ export default function VideoMeetComponent() {
     function connectSocket() {
         if (socketRef.current) return;
 
-        socketRef.current = io(SERVER_URL, { secure: window.location.protocol === "https:" });
+        try {
+            socketRef.current = io(SERVER_URL, {
+                secure: window.location.protocol === "https:",
+                transports: ['websocket', 'polling'],
+                timeout: 20000,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
 
-        socketRef.current.on("connect", () => {
-            socketRef.current.emit("join-call", window.location.href);
-            console.log("socket connected", socketRef.current.id);
-        });
+            socketRef.current.on("connect", () => {
+                socketRef.current.emit("join-call", window.location.href);
+                console.log("socket connected", socketRef.current.id);
+            });
 
-        socketRef.current.on("user-joined", handleUserJoined);
+            socketRef.current.on("connect_error", (error) => {
+                console.error("Socket connection error:", error);
+                // Fallback to polling if websocket fails
+                if (socketRef.current) {
+                    socketRef.current.io.opts.transports = ['polling'];
+                }
+            });
 
-        socketRef.current.on("signal", handleSignal);
+            socketRef.current.on("user-joined", handleUserJoined);
 
-        socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
-            // Ignore our own echoed messages to prevent duplicates
-            if (socketIdSender === socketRef.current.id) return;
-            setMessages((prev) => [...prev, { sender, data, timestamp: new Date() }]);
-            setUnreadCount((c) => (chatOpen ? c : c + 1));
-        });
+            socketRef.current.on("signal", handleSignal);
 
-        socketRef.current.on("user-left", (id) => {
-            // remove peer and video
-            if (peersRef.current[id]) {
-                try {
-                    peersRef.current[id].close();
-                } catch (e) { }
-                delete peersRef.current[id];
-            }
-            setVideos((v) => v.filter((x) => x.socketId !== id));
-        });
+            socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
+                // Ignore our own echoed messages to prevent duplicates
+                if (socketIdSender === socketRef.current.id) return;
+                setMessages((prev) => [...prev, { sender, data, timestamp: new Date() }]);
+                setUnreadCount((c) => (chatOpen ? c : c + 1));
+            });
+
+            socketRef.current.on("user-left", (id) => {
+                // remove peer and video
+                if (peersRef.current[id]) {
+                    try {
+                        peersRef.current[id].close();
+                    } catch (e) { }
+                    delete peersRef.current[id];
+                }
+                setVideos((v) => v.filter((x) => x.socketId !== id));
+            });
+
+            socketRef.current.on("disconnect", (reason) => {
+                console.log("Socket disconnected:", reason);
+                if (reason === "io server disconnect") {
+                    // the disconnection was initiated by the server, reconnect manually
+                    socketRef.current.connect();
+                }
+            });
+
+        } catch (error) {
+            console.error("Failed to create socket connection:", error);
+        }
     }
 
     async function handleUserJoined(newId, clients) {
@@ -353,7 +400,7 @@ export default function VideoMeetComponent() {
                     Object.values(peersRef.current).forEach((pc) => {
                         const senders = pc.getSenders();
                         const videoSender = senders.find((s) => s.track && s.track.kind === "video");
-                        const camTrack = window.localStream && window.localStream.getVideoTracks()[0];
+                        const camTrack = localStream && localStream.getVideoTracks()[0];
                         if (videoSender && camTrack) videoSender.replaceTrack(camTrack).catch((e) => console.warn(e));
                     });
                 });
