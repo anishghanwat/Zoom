@@ -57,10 +57,10 @@ export const connectToSocket = (server) => {
                     messages[matchingRoom] = [];
                 }
                 messages[matchingRoom].push({ 'sender': sender, 'data': data, 'socket-id-sender': socket.id });
-                console.log("message", key, ":", sender, data);
+                console.log("message", matchingRoom, ":", sender, data);
 
                 connections[matchingRoom].forEach((elem) => {
-                    io.to(elem).emit("chat-message", data, sender, socket.io);
+                    io.to(elem).emit("chat-message", data, sender, socket.id);
                 })
             }
         })
@@ -69,8 +69,8 @@ export const connectToSocket = (server) => {
 
             let key;
 
-            for (const [k, v] of JSON.parse(JSON.stringify(Object.entries(connections)))) {
-                for (let a = 0; a < v, length; ++a) {
+            for (const [k, v] of Object.entries(connections)) {
+                for (let a = 0; a < v.length; ++a) {
                     if (v[a] == socket.id) {
                         key = k;
 

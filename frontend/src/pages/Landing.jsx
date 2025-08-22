@@ -1,7 +1,7 @@
 import React from 'react'
 import "../App.css"
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, Typography, Box, Container } from '@mui/material';
+import { Typography, Box, Container } from '@mui/material';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import GroupIcon from '@mui/icons-material/Group';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -16,7 +16,7 @@ export default function LandingPage() {
                 <div className='navHeader'>
                     <Box display="flex" alignItems="center" gap={1}>
                         <VideoCallIcon sx={{ fontSize: 32, color: 'white' }} />
-                        <h2>Apna Video Call</h2>
+                        <h2>Meetly</h2>
                     </Box>
                 </div>
                 <div className='navlist'>
@@ -35,12 +35,12 @@ export default function LandingPage() {
                     </Typography>
 
                     <Typography variant="h5" component="p" sx={{ mb: 3, opacity: 0.9 }}>
-                        Cover a distance by Apna Video Call
+                        Cover a distance by Meetly
                     </Typography>
-                    
+
                     <Typography variant="body1" sx={{ mb: 4, opacity: 0.8, lineHeight: 1.6 }}>
-                        Experience high-quality video conferencing with crystal-clear audio, 
-                        HD video, and seamless screen sharing. Perfect for work, education, 
+                        Experience high-quality video conferencing with crystal-clear audio,
+                        HD video, and seamless screen sharing. Perfect for work, education,
                         and staying connected with family and friends.
                     </Typography>
 
@@ -64,12 +64,12 @@ export default function LandingPage() {
                         </Box>
                     </Box>
                 </div>
-                
+
                 <div className="slideInRight">
-                    <img 
-                        src="/mobile.png" 
-                        alt="Video Call Illustration" 
-                        style={{ 
+                    <img
+                        src="/mobile.png"
+                        alt="Video Call Illustration"
+                        style={{
                             filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3))',
                             transition: 'all 0.3s ease'
                         }}

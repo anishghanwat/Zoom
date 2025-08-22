@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react'
 import withAuth from '../utils/withAuth'
 import { useNavigate } from 'react-router-dom'
 import "../App.css";
-import { Button, IconButton, TextField, Paper, Typography, Box, Container } from '@mui/material';
+import { Button, TextField, Paper, Typography, Box, Container } from '@mui/material';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -14,10 +14,10 @@ function HomeComponent() {
     const [isJoining, setIsJoining] = useState(false);
 
     const { addToUserHistory } = useContext(AuthContext);
-    
+
     let handleJoinVideoCall = async () => {
         if (!meetingCode.trim()) return;
-        
+
         setIsJoining(true);
         try {
             await addToUserHistory(meetingCode);
@@ -40,7 +40,7 @@ function HomeComponent() {
             <div className="navBar">
                 <div style={{ display: "flex", alignItems: "center" }}>
                     <VideoCallIcon sx={{ fontSize: 32, color: 'var(--primary-color)', mr: 1 }} />
-                    <h2>Apna Video Call</h2>
+                    <h2>Meetly</h2>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -73,9 +73,9 @@ function HomeComponent() {
                     <Typography variant="h2" component="h2" gutterBottom>
                         Providing Quality Video Call Just Like Quality Education
                     </Typography>
-                    
+
                     <Typography variant="body1" color="textSecondary" sx={{ mb: 3, fontSize: '1.1rem', lineHeight: 1.6 }}>
-                        Connect with your team, students, or loved ones through our high-quality video conferencing platform. 
+                        Connect with your team, students, or loved ones through our high-quality video conferencing platform.
                         Experience crystal-clear audio, HD video, and seamless screen sharing.
                     </Typography>
 
@@ -83,7 +83,7 @@ function HomeComponent() {
                         <Typography variant="h6" gutterBottom sx={{ mb: 2, color: 'var(--primary-color)' }}>
                             Join a Meeting
                         </Typography>
-                        
+
                         <div className="meetingForm">
                             <TextField
                                 fullWidth
@@ -93,7 +93,7 @@ function HomeComponent() {
                                 onChange={(e) => setMeetingCode(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Enter meeting code to join"
-                                sx={{ 
+                                sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: 2,
                                         '&:hover fieldset': {
@@ -127,7 +127,7 @@ function HomeComponent() {
                                 {isJoining ? 'Joining...' : 'Join Meeting'}
                             </Button>
                         </div>
-                        
+
                         {meetingCode.trim() && (
                             <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
                                 Press Enter to join quickly
@@ -162,12 +162,12 @@ function HomeComponent() {
                         </Paper>
                     </Box>
                 </div>
-                
+
                 <div className="rightPanel slideInRight">
-                    <img 
-                        src="/logo3.png" 
-                        alt="Video Call Illustration" 
-                        style={{ 
+                    <img
+                        src="/video-illustration.svg"
+                        alt="Video Call Illustration"
+                        style={{
                             filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15))',
                             transition: 'all 0.3s ease'
                         }}

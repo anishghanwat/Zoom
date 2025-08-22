@@ -129,7 +129,7 @@ export default function Authentication() {
                     <Box sx={{ textAlign: 'center', zIndex: 2 }}>
                         <VideoCallIcon sx={{ fontSize: 80, mb: 2, opacity: 0.9 }} />
                         <Typography variant="h3" component="h1" gutterBottom fontWeight={700}>
-                            Apna Video Call
+                            Meetly
                         </Typography>
                         <Typography variant="h6" sx={{ opacity: 0.9, maxWidth: 400 }}>
                             Connect with your loved ones through high-quality video conferencing

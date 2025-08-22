@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import io from "socket.io-client";
 import {
     Badge,
     IconButton,
     TextField,
     Button,
-    Paper,
     Typography,
     Box,
-    Fade,
     Slide
 } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
@@ -32,7 +30,6 @@ export default function VideoMeetComponent() {
     const peersRef = useRef({}); // { socketId: RTCPeerConnection }
     const localVideoRef = useRef(null);
 
-    const [connected, setConnected] = useState(false);
     const [username, setUsername] = useState("");
     const [askForUsername, setAskForUsername] = useState(true);
 
@@ -49,6 +46,30 @@ export default function VideoMeetComponent() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [chatOpen, setChatOpen] = useState(false);
 
+    // --- Cleanup helper (stable reference) ---
+    const cleanupAll = useCallback(() => {
+        // close peers
+        Object.values(peersRef.current).forEach((pc) => {
+            try {
+                pc.close();
+            } catch (e) { }
+        });
+
+        peersRef.current = {};
+
+        // stop local stream
+        if (localStream) {
+            try {
+                localStream.getTracks().forEach((t) => t.stop());
+            } catch (e) { }
+        }
+
+        // disconnect socket
+        try {
+            if (socketRef.current) socketRef.current.disconnect();
+        } catch (e) { }
+    }, [localStream]);
+
     // --- Mount / Unmount ---
     useEffect(() => {
         // run once
@@ -58,14 +79,14 @@ export default function VideoMeetComponent() {
             // cleanup on unmount
             cleanupAll();
         };
-    }, []);
+    }, [cleanupAll]);
 
-    // ensure local video element gets assigned stream when stream changes
+    // ensure local video element gets assigned stream when stream changes or when the ref remounts
     useEffect(() => {
         if (localVideoRef.current && localStream) {
             localVideoRef.current.srcObject = localStream;
         }
-    }, [localStream]);
+    }, [localStream, askForUsername]);
 
     // ----------------- Permissions & initial user media -----------------
     async function getPermissions() {
@@ -114,10 +135,10 @@ export default function VideoMeetComponent() {
         socketRef.current.on("signal", handleSignal);
 
         socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
+            // Ignore our own echoed messages to prevent duplicates
+            if (socketIdSender === socketRef.current.id) return;
             setMessages((prev) => [...prev, { sender, data, timestamp: new Date() }]);
-            if (socketRef.current && socketRef.current.id !== socketIdSender) {
-                setUnreadCount((c) => c + 1);
-            }
+            setUnreadCount((c) => (chatOpen ? c : c + 1));
         });
 
         socketRef.current.on("user-left", (id) => {
@@ -231,8 +252,12 @@ export default function VideoMeetComponent() {
     // ----------------- Actions -----------------
     async function startCall() {
         setAskForUsername(false);
-        setConnected(true);
         connectSocket();
+
+        // ensure local preview attaches in meeting view as well
+        if (localVideoRef.current && localStream) {
+            localVideoRef.current.srcObject = localStream;
+        }
 
         // add local tracks to all existing peers
         Object.keys(peersRef.current).forEach((id) => {
@@ -242,28 +267,7 @@ export default function VideoMeetComponent() {
         });
     }
 
-    function cleanupAll() {
-        // close peers
-        Object.values(peersRef.current).forEach((pc) => {
-            try {
-                pc.close();
-            } catch (e) { }
-        });
 
-        peersRef.current = {};
-
-        // stop local stream
-        if (localStream) {
-            try {
-                localStream.getTracks().forEach((t) => t.stop());
-            } catch (e) { }
-        }
-
-        // disconnect socket
-        try {
-            if (socketRef.current) socketRef.current.disconnect();
-        } catch (e) { }
-    }
 
     function endCall() {
         cleanupAll();
@@ -382,7 +386,7 @@ export default function VideoMeetComponent() {
                     <Typography variant="h2" className={styles.lobbyTitle}>
                         Enter Meeting Lobby
                     </Typography>
-                    
+
                     <div className={styles.lobbyForm}>
                         <TextField
                             fullWidth
@@ -391,7 +395,7 @@ export default function VideoMeetComponent() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Enter your name to join"
-                            sx={{ 
+                            sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: 2,
                                     '&:hover fieldset': {
@@ -400,7 +404,7 @@ export default function VideoMeetComponent() {
                                 }
                             }}
                         />
-                        
+
                         <Button
                             variant="contained"
                             onClick={startCall}
@@ -434,7 +438,7 @@ export default function VideoMeetComponent() {
                     )}
                 </div>
             ) : (
-                <div className={styles.meetingInterface}>
+                <div className={`${styles.meetingInterface} ${chatOpen ? styles.chatOpen : ''}`}>
                     {/* Video Grid */}
                     <div className={styles.videoGrid}>
                         {videos.map((v) => (
@@ -451,7 +455,7 @@ export default function VideoMeetComponent() {
                                 </div>
                             </div>
                         ))}
-                        
+
                         {videos.length === 0 && (
                             <div className={styles.emptyState}>
                                 <VideocamIcon />
@@ -473,28 +477,28 @@ export default function VideoMeetComponent() {
 
                     {/* Control Bar */}
                     <div className={styles.controlBar}>
-                        <IconButton 
+                        <IconButton
                             className={`${styles.controlButton} ${videoOn ? 'active' : ''}`}
                             onClick={toggleVideo}
                         >
                             {videoOn ? <VideocamIcon /> : <VideocamOffIcon />}
                         </IconButton>
 
-                        <IconButton 
+                        <IconButton
                             className={`${styles.controlButton} ${audioOn ? 'active' : ''}`}
                             onClick={toggleAudio}
                         >
                             {audioOn ? <MicIcon /> : <MicOffIcon />}
                         </IconButton>
 
-                        <IconButton 
+                        <IconButton
                             className={`${styles.controlButton} ${screenSharing ? 'active' : ''}`}
                             onClick={toggleScreenShare}
                         >
                             {screenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
                         </IconButton>
 
-                        <IconButton 
+                        <IconButton
                             className={`${styles.controlButton} danger`}
                             onClick={endCall}
                         >
@@ -502,7 +506,7 @@ export default function VideoMeetComponent() {
                         </IconButton>
 
                         <Badge badgeContent={unreadCount} color="error">
-                            <IconButton 
+                            <IconButton
                                 className={styles.controlButton}
                                 onClick={() => { setChatOpen(!chatOpen); setUnreadCount(0); }}
                             >
@@ -517,8 +521,8 @@ export default function VideoMeetComponent() {
                             <div className={styles.chatHeader}>
                                 <Box display="flex" justifyContent="space-between" alignItems="center">
                                     <Typography variant="h6">Chat</Typography>
-                                    <IconButton 
-                                        size="small" 
+                                    <IconButton
+                                        size="small"
                                         onClick={() => setChatOpen(false)}
                                         sx={{ color: 'white' }}
                                     >
@@ -530,7 +534,7 @@ export default function VideoMeetComponent() {
                             <div className={styles.chatMessages}>
                                 {messages.length > 0 ? (
                                     messages.map((item, i) => (
-                                        <div key={i} className={`${styles.message} ${item.sender === username ? 'sent' : 'received'}`}>
+                                        <div key={i} className={`${styles.message} ${item.sender === username ? styles.sent : styles.received}`}>
                                             {item.sender !== username && (
                                                 <div className={styles.messageSender}>{item.sender}</div>
                                             )}
